@@ -12,6 +12,7 @@ This repository contains a machine learning project focused on predicting Grade 
 ### 2. Model Training
 - Random Forest models are trained for both red and white wines separately using 10-fold cross-validation and grid search to optimize hyperparameters
 - Hyperparameters were tuned separately for each wine type to ensure optimal performance for both red and white wines
+- Parallel processing was utilized to significantly reduce the computation time required for training multiple Random Forest models, especially during hyperparameter tuning and bootstrapping
 
 ### 3. Feature Importance
 - Variable importance is calculated for both red and white wines using the Gini Impurity method, and key predictors for Grade A wine quality are compared between the two datasets
