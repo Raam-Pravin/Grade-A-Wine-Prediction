@@ -49,6 +49,7 @@ The datasets are publicly available and can be found here: https://archive.ics.u
 ### White Wine Model
 - The Random Forest model for predicting Grade A white wine achieved an accuracy of 0.8613, with a 95% Confidence Interval of [0.8379, 0.8825]
 - Most important features: alcohol, density, chlorides, total_sulfur_dioxide, and residual_sugar
+
 By identifying these crucial factors, the models can help winemakers focus on optimizing these characteristics to improve wine quality.
 
 ## Future work
