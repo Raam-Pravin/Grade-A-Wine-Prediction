@@ -1,0 +1,402 @@
+---
+title: "Grade A Wine EDA"
+output: 
+  github_document: default
+date: "2024-10-28"
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 7, fig.height = 5)
+```
+
+
+
+
+Importing necessary libraries, importing data, and readying data for analysis
+```{r, echo=FALSE}
+library(corrplot)
+library(Hmisc)
+library(ggplot2)
+library(psych)
+library(GGally)
+library(vioplot)
+library(DescTools)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(e1071)
+library(rattle)
+library(dplyr)
+library(rpart)
+library(kknn)
+library(stats)
+library(factoextra)
+library(MASS)
+library(car)
+library(xgboost)
+library(tidyverse)
+library(data.table)
+library(skimr)
+library(randomForest)
+library(ROSE)
+library(tuneRanger)
+library(VSURF)
+library(foreach)
+library(doParallel)
+
+```
+
+
+```{r}
+
+setwd("~/Downloads")
+redwine <- read.csv("winequality-red.csv")
+whitewine <- read.csv("winequality-white.csv")
+
+cat("Creating variable Names Red Wine")
+redwine_seperated <- str_split_fixed(redwine$fixed.acidity.volatile.acidity.citric.acid.residual.sugar.chlorides.free.sulfur.dioxide.total.sulfur.dioxide.density.pH.sulphates.alcohol.quality, ';', 12)
+
+redwine_seperated <- data.frame(redwine_seperated)
+
+cat("Creating variable Names White Wine")
+whitewine_seperated <- str_split_fixed(whitewine$fixed.acidity.volatile.acidity.citric.acid.residual.sugar.chlorides.free.sulfur.dioxide.total.sulfur.dioxide.density.pH.sulphates.alcohol.quality, ';', 12)
+
+whitewine_seperated <- data.frame(whitewine_seperated)
+
+
+
+redwine_seperated <- redwine_seperated %>% 
+  rename(fixed_acidity = 'X1')
+redwine_seperated <- redwine_seperated %>% 
+  rename(volatile_acidity = 'X2')
+redwine_seperated <- redwine_seperated %>% 
+  rename(citric_acid = 'X3')
+redwine_seperated <- redwine_seperated %>% 
+  rename(residual_sugar = 'X4')
+redwine_seperated <- redwine_seperated %>% 
+  rename(chlorides = 'X5')
+redwine_seperated <- redwine_seperated %>% 
+  rename(free_sulfur_dioxide = 'X6')
+redwine_seperated <- redwine_seperated %>% 
+  rename(total_sulfur_dioxide = 'X7')
+redwine_seperated <- redwine_seperated %>% 
+  rename(density = 'X8')
+redwine_seperated <- redwine_seperated %>% 
+  rename(pH = 'X9')
+redwine_seperated <- redwine_seperated %>% 
+  rename(sulphates = 'X10')
+redwine_seperated <- redwine_seperated %>% 
+  rename(alcohol = 'X11')
+redwine_seperated <- redwine_seperated %>% 
+  rename(quality = 'X12')
+
+whitewine_seperated <- str_split_fixed(whitewine$fixed.acidity.volatile.acidity.citric.acid.residual.sugar.chlorides.free.sulfur.dioxide.total.sulfur.dioxide.density.pH.sulphates.alcohol.quality, ';', 12)
+
+whitewine_seperated <- data.frame(whitewine_seperated)
+
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(fixed_acidity = 'X1')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(volatile_acidity = 'X2')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(citric_acid = 'X3')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(residual_sugar = 'X4')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(chlorides = 'X5')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(free_sulfur_dioxide = 'X6')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(total_sulfur_dioxide = 'X7')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(density = 'X8')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(pH = 'X9')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(sulphates = 'X10')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(alcohol = 'X11')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(quality = 'X12')
+
+
+redwine_seperated <- apply(redwine_seperated,2,as.numeric)
+whitewine_seperated <- apply(whitewine_seperated,2,as.numeric)
+
+redwine_seperated <- data.frame(redwine_seperated)
+whitewine_seperated <- data.frame(whitewine_seperated)
+
+
+
+redwine_seperated$type <- 'red'
+whitewine_seperated$type <- 'white'
+
+redwine_seperated$type <- as.factor(redwine_seperated$type)
+whitewine_seperated$type <- as.factor(whitewine_seperated$type)
+
+wine <- full_join(redwine_seperated,whitewine_seperated)
+
+```
+
+
+Exploratory Data Analysis Getting Descriptive Statistics for Red and White Wine
+```{r}
+#Getting descriptive stats for Red Wine
+skim(redwine_seperated)
+
+#Basic Stats
+summary(redwine_seperated)
+
+
+
+#Getting descriptive stats for White Wine
+skim(whitewine_seperated)
+
+
+#Basic Stats
+summary(whitewine_seperated)
+
+```
+
+
+
+EDA Continued: Exploring Data by viewing distributions, 
+    and frequency of outliers for each variable
+```{r, echo=FALSE, fig.width=7, fig.height=5}
+
+# Box plot Fixed Acidity grouped by Wine Type
+ggplot(wine, aes(x = type, y = fixed_acidity)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Fixed Acidity", 
+       title = "Box Plot of Fixed Acidity by Wine Type")
+
+# Histogram of Fixed Acidity with bars colored by Wine Type
+ggplot(wine, aes(x = fixed_acidity, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Fixed Acidity by Wine Type")
+
+
+
+# Box plot Volatile Acidity grouped by Wine Type
+ggplot(wine, aes(x = type, y = volatile_acidity)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Volatile Acidity", 
+       title = "Box Plot of Volatile Acidity by Wine Type")
+
+# Histogram of Volatile Acidity  with bars colored by Wine Type
+ggplot(wine, aes(x = volatile_acidity, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Volatile Acidity by Wine Type")
+
+
+
+# Box plot Citric Acid grouped by Wine Type
+ggplot(wine, aes(x = type, y = citric_acid)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Citric Acid", 
+       title = "Box Plot of Citric Acid by Wine Type")
+
+# Histogram of Citric Acid with bars colored by Wine Type
+ggplot(wine, aes(x = citric_acid, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Citric Acid by Wine Type")
+
+
+
+# Box plot Residual Sugar grouped by Wine Type
+ggplot(wine, aes(x = type, y = residual_sugar)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Residual Sugar", 
+       title = "Box Plot of Residual Sugar by Wine Type")
+
+# Histogram of Residual Sugar with bars colored by Wine Type
+ggplot(wine, aes(x = residual_sugar, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Residual Sugar by Wine Type")
+
+
+
+# Box plot Chlorides grouped by Wine Type
+ggplot(wine, aes(x = type, y = chlorides)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Chlorides", 
+       title = "Box Plot of Chlorides by Wine Type")
+
+# Histogram of Chlorides with bars colored by Wine Type
+ggplot(wine, aes(x = chlorides, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Chlorides by Wine Type")
+
+
+
+# Box plot Free Sulfur Dioxide grouped by Wine Type
+ggplot(wine, aes(x = type, y = free_sulfur_dioxide)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Free Sulfur Dioxide", 
+       title = "Box Plot of Free Sulfur Dioxide by Wine Type")
+
+# Histogram of Free Sulfur Dioxide with bars colored by Wine Type
+ggplot(wine, aes(x = free_sulfur_dioxide, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Free Sulfur Dioxide by Wine Type")
+
+
+
+# Box plot Total Sulfur Dioxide grouped by Wine Type
+ggplot(wine, aes(x = type, y = total_sulfur_dioxide)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Total Sulfur Dioxide", 
+       title = "Box Plot of Total Sulfur Dioxide by Wine Type")
+
+# Histogram of Total Sulfur Dioxide with bars colored by Wine Type
+ggplot(wine, aes(x = total_sulfur_dioxide, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Total Sulfur Dioxide by Wine Type")
+
+
+
+# Box plot Density grouped by Wine Type
+ggplot(wine, aes(x = type, y = density)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Density", 
+       title = "Box Plot of Density by Wine Type")
+
+# Histogram of Density with bars colored by Wine Type
+ggplot(wine, aes(x = density, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Density by Wine Type")
+
+
+
+# Box plot pH grouped by Wine Type
+ggplot(wine, aes(x = type, y = pH)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "pH", title = "Box Plot of pH by Wine Type")
+
+# Histogram of pH with bars colored by Wine Type
+ggplot(wine, aes(x = pH, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", title = "Histogram of pH by Wine Type")
+
+
+
+# Box plot Sulfates grouped by Wine Type
+ggplot(wine, aes(x = type, y = sulphates)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Sulfates", 
+       title = "Box Plot of Sulfates by Wine Type")
+
+# Histogram of Sulfates with bars colored by Wine Type
+ggplot(wine, aes(x = sulphates, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Sulfates by Wine Type")
+
+
+
+# Box plot Alcohol grouped by Wine Type
+ggplot(wine, aes(x = type, y = alcohol)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Alcohol", 
+       title = "Box Plot of Alcohol by Wine Type")
+
+# Histogram of Alcohol with bars colored by Wine Type
+ggplot(wine, aes(x = alcohol, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "Histogram of Alcohol by Wine Type")
+
+
+
+# Box plot Quality grouped by Wine Type
+ggplot(wine, aes(x = type, y = quality)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Wine Type", y = "Quality", 
+       title = "Box Plot of Quality by Wine Type")
+
+# CountPlot of Quality with bars colored by Wine Type
+ggplot(wine, aes(x = quality, fill = type,colour = type)) +
+  geom_histogram(alpha = 0.5, position = "identity") +
+  labs(x = "Wine Type", y = "Count", 
+       title = "CountPlot of Quality by Wine Type")
+
+
+cat("Examining the CountPlot of Wine Type, the purpose of this investigation
+    since less than 25% of wines in both red and white wines have high wine 
+    ratings greater than 7, Grade A wine is defined as those with an rating of 7 
+    or greater. The purpose of this investigation is to predict Grade A wine 
+    and be able to define characteristics of Grade A wine")
+
+redwine_seperated$quality <- ifelse(redwine_seperated$quality >= 7,1,0)
+
+whitewine_seperated$quality <- ifelse(whitewine_seperated$quality >= 7,1,0)  
+
+```
+
+
+EDA Continued:
+Checking Correlation of all Variables with correlation plot
+```{r, echo=FALSE, fig.width=7, fig.height=5}
+#Correlation Plot of all red wine variables  
+corrplot(cor(redwine_seperated[1:12]))
+title("Correlation Plot of all Red Wine Variables")
+
+
+#Correlation Plot of all white wine variables 
+corrplot(cor(whitewine_seperated[1:12]))
+title("Correlation Plot of all White Wine Variables")
+
+
+
+```
+
+
+
+Since summary statistics showed that variables were on different scales 
+    and there was a lot of difference observed between variables must apply 
+    scaling method to normalize data.
+```{r}
+#Applying Min-max scaling 
+min_max_scaling_white <- preProcess(whitewine_seperated[1:11], method = "range")
+white_wine_scaled <- predict(min_max_scaling_white,whitewine_seperated)
+white_wine_scaled$quality <- as.factor(white_wine_scaled$quality)
+
+min_max_scaling_red <- preProcess(redwine_seperated[1:11], method = "range")
+red_wine_scaled <- predict(min_max_scaling_red,redwine_seperated)
+red_wine_scaled$quality <- as.factor(red_wine_scaled$quality)
+
+
+redwine_randomforest_columns12 <- c("fixed_acidity", "volatile_acidity",
+                                    "citric_acid","residual_sugar","chlorides", 
+                                    "free_sulfur_dioxide","total_sulfur_dioxide",
+                            "density","pH","sulphates", "alcohol", "quality")
+whitewine_randomforest_columns12 <- c("fixed_acidity", "volatile_acidity",
+                                      "citric_acid","residual_sugar","chlorides", 
+                                      "free_sulfur_dioxide","total_sulfur_dioxide",
+                            "density","pH","sulphates", "alcohol", "quality")
+
+red_wine_scaled <- red_wine_scaled[, redwine_randomforest_columns12, 
+                                   drop = FALSE ]
+white_wine_scaled <- white_wine_scaled[, whitewine_randomforest_columns12, 
+                                       drop = FALSE ]
+
+
+
+
+```
+
+Since summary statistics showed that variables were on different scales 
+    and there was a lot of difference observed between variables must apply 
+    scaling method to normalize data.
+    
+    
+
