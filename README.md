@@ -55,8 +55,8 @@ The datasets are publicly available and can be found here: https://archive.ics.u
 By identifying these crucial factors, the models can help winemakers focus on optimizing these characteristics to improve wine quality.
 
 ## Future work
-- Feature refinement: Investigating additional factors or interactions between variables to further improve prediction accuracy
-- Data balance techniques: Addressing class imbalances, especially in the Grade A categories, using techniques like SMOTE to improve prediction performance
-- Cross-algorithm evaluation: Exploring other algorithms, such as XGBoost or Gradient Boosting, to compare performance and robustness across models
+- **Feature refinement**: Investigating additional factors or interactions between variables to further improve prediction accuracy
+- **Data balance techniques**: Addressing class imbalances, especially in the Grade A categories, using techniques like SMOTE to improve prediction performance
+- **Cross-algorithm evaluation**: Exploring other algorithms, such as XGBoost or Gradient Boosting, to compare performance and robustness across models
 
 Leveraging these insights into important variables will not only enhance predictive modeling but also provide actionable recommendations for winemakers to focus on the most influential factors that drive wine quality
