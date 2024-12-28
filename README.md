@@ -37,7 +37,9 @@ To run this project, you must have the following libraries installed:
 
 ## Data
 **Red Wine Dataset**: Contains various chemical features and the quality ratings of red wines
+
 **White Wine Dataset**: Similar to the red wine dataset contains the same chemical features and quality ratings of white wines
+
 The datasets are publicly available and can be found here: https://archive.ics.uci.edu/dataset/186/wine+quality 
 
 
