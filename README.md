@@ -7,8 +7,8 @@ This repository contains a machine learning project focused on predicting Grade 
 - **Grade_A_Wine_EDA_Preprocesing.Rmd**: RMD file containing EDA/Preprocessing R-code
 - **Grade_A_Wine_EDA_Preprocesing.pdf**: PDF file containing EDA/Preprocessing R-code, plots, and output
 - **README.md**: The document you are currently reading
-- **winequality-red.csv**: Contains wine quality data for red wines, including physicochemical properties and rating scores
-- **winequality-white.csv**: Contains wine quality data for white wines, including physicochemical properties and rating scores
+- **winequality-red.csv**: CSV file containing wine quality data for red wines, including physicochemical properties and rating scores
+- **winequality-white.csv**: CSV file containing wine quality data for white wines, including physicochemical properties and rating scores
 
 
 ## Overview
