@@ -1,0 +1,502 @@
+---
+title: "Grade A Wine Analysis"
+author: "Raam Pravin"
+date: "2024-12-28"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+---
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 7, fig.height = 5)
+```
+
+```{r, echo=FALSE}
+library(corrplot)
+library(Hmisc)
+library(ggplot2)
+library(psych)
+library(GGally)
+library(vioplot)
+library(DescTools)
+library(leaps)
+library(tidyverse)
+library(caret)
+library(e1071)
+library(rattle)
+library(dplyr)
+library(rpart)
+library(kknn)
+library(stats)
+library(factoextra)
+library(MASS)
+library(car)
+library(xgboost)
+library(tidyverse)
+library(data.table)
+library(skimr)
+library(randomForest)
+library(ROSE)
+library(tuneRanger)
+library(VSURF)
+library(foreach)
+library(doParallel)
+
+setwd("~/Downloads")
+redwine <- read.csv("winequality-red.csv")
+whitewine <- read.csv("winequality-white.csv")
+
+redwine_seperated <- str_split_fixed(redwine$fixed.acidity.volatile.acidity.citric.acid.residual.sugar.chlorides.free.sulfur.dioxide.total.sulfur.dioxide.density.pH.sulphates.alcohol.quality, ';', 12)
+
+redwine_seperated <- data.frame(redwine_seperated)
+
+whitewine_seperated <- str_split_fixed(whitewine$fixed.acidity.volatile.acidity.citric.acid.residual.sugar.chlorides.free.sulfur.dioxide.total.sulfur.dioxide.density.pH.sulphates.alcohol.quality, ';', 12)
+
+whitewine_seperated <- data.frame(whitewine_seperated)
+
+
+
+redwine_seperated <- redwine_seperated %>% 
+  rename(fixed_acidity = 'X1')
+redwine_seperated <- redwine_seperated %>% 
+  rename(volatile_acidity = 'X2')
+redwine_seperated <- redwine_seperated %>% 
+  rename(citric_acid = 'X3')
+redwine_seperated <- redwine_seperated %>% 
+  rename(residual_sugar = 'X4')
+redwine_seperated <- redwine_seperated %>% 
+  rename(chlorides = 'X5')
+redwine_seperated <- redwine_seperated %>% 
+  rename(free_sulfur_dioxide = 'X6')
+redwine_seperated <- redwine_seperated %>% 
+  rename(total_sulfur_dioxide = 'X7')
+redwine_seperated <- redwine_seperated %>% 
+  rename(density = 'X8')
+redwine_seperated <- redwine_seperated %>% 
+  rename(pH = 'X9')
+redwine_seperated <- redwine_seperated %>% 
+  rename(sulphates = 'X10')
+redwine_seperated <- redwine_seperated %>% 
+  rename(alcohol = 'X11')
+redwine_seperated <- redwine_seperated %>% 
+  rename(quality = 'X12')
+
+whitewine_seperated <- str_split_fixed(whitewine$fixed.acidity.volatile.acidity.citric.acid.residual.sugar.chlorides.free.sulfur.dioxide.total.sulfur.dioxide.density.pH.sulphates.alcohol.quality, ';', 12)
+
+whitewine_seperated <- data.frame(whitewine_seperated)
+
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(fixed_acidity = 'X1')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(volatile_acidity = 'X2')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(citric_acid = 'X3')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(residual_sugar = 'X4')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(chlorides = 'X5')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(free_sulfur_dioxide = 'X6')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(total_sulfur_dioxide = 'X7')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(density = 'X8')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(pH = 'X9')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(sulphates = 'X10')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(alcohol = 'X11')
+whitewine_seperated <- whitewine_seperated %>% 
+  rename(quality = 'X12')
+
+
+redwine_seperated <- apply(redwine_seperated,2,as.numeric)
+whitewine_seperated <- apply(whitewine_seperated,2,as.numeric)
+
+redwine_seperated <- data.frame(redwine_seperated)
+whitewine_seperated <- data.frame(whitewine_seperated)
+
+
+
+redwine_seperated$type <- 'red'
+whitewine_seperated$type <- 'white'
+
+redwine_seperated$type <- as.factor(redwine_seperated$type)
+whitewine_seperated$type <- as.factor(whitewine_seperated$type)
+
+wine <- full_join(redwine_seperated,whitewine_seperated)
+redwine_seperated$quality <- ifelse(redwine_seperated$quality >= 7,1,0)
+
+whitewine_seperated$quality <- ifelse(whitewine_seperated$quality >= 7,1,0)  
+
+
+#Applying Min-max scaling 
+min_max_scaling_white <- preProcess(whitewine_seperated[1:11], method = "range")
+white_wine_scaled <- predict(min_max_scaling_white,whitewine_seperated)
+white_wine_scaled$quality <- as.factor(white_wine_scaled$quality)
+
+min_max_scaling_red <- preProcess(redwine_seperated[1:11], method = "range")
+red_wine_scaled <- predict(min_max_scaling_red,redwine_seperated)
+red_wine_scaled$quality <- as.factor(red_wine_scaled$quality)
+
+
+redwine_randomforest_columns12 <- c("fixed_acidity", "volatile_acidity",
+                                    "citric_acid","residual_sugar","chlorides", 
+                                    "free_sulfur_dioxide","total_sulfur_dioxide",
+                            "density","pH","sulphates", "alcohol", "quality")
+whitewine_randomforest_columns12 <- c("fixed_acidity", "volatile_acidity",
+                                      "citric_acid","residual_sugar","chlorides", 
+                                      "free_sulfur_dioxide","total_sulfur_dioxide",
+                            "density","pH","sulphates", "alcohol", "quality")
+
+red_wine_scaled <- red_wine_scaled[, redwine_randomforest_columns12, 
+                                   drop = FALSE ]
+white_wine_scaled <- white_wine_scaled[, whitewine_randomforest_columns12, 
+                                       drop = FALSE ]
+# Randomly shuffling the data and dividing into train/test
+white_wine_indexes <- sample(2, nrow(white_wine_scaled), 
+                             replace = TRUE, prob = c(0.8,0.2))
+white_wine_train <- white_wine_scaled[white_wine_indexes==1,]
+white_wine_test <- white_wine_scaled[white_wine_indexes==2,]
+
+
+red_wine_indexes <- sample(2, nrow(red_wine_scaled), 
+                           replace = TRUE, prob = c(0.8,0.2))
+red_wine_train <- red_wine_scaled[red_wine_indexes==1,]
+red_wine_test <- red_wine_scaled[red_wine_indexes==2,]
+
+
+
+# Set up 30 random train/test splits for white and red wine data
+set.seed(123) # for reproducibility
+
+# Generate indexes for 30 iterations
+white_wine_indexes_list <- replicate(31, sample(2, 
+                                                nrow(white_wine_scaled), 
+                                                replace = TRUE, 
+                                                prob = c(0.8, 0.2)), 
+                                     simplify = FALSE)
+
+red_wine_indexes_list <- replicate(31, sample(2, nrow(red_wine_scaled), 
+                                              replace = TRUE, 
+                                              prob = c(0.8, 0.2)), 
+                                   simplify = FALSE)
+
+# Vectorized approach with lapply
+white_wine_train_list <- lapply(white_wine_indexes_list, function(index) white_wine_scaled[index == 1, ])
+white_wine_test_list <- lapply(white_wine_indexes_list, function(index) white_wine_scaled[index == 2, ])
+
+red_wine_train_list <- lapply(red_wine_indexes_list, function(index) red_wine_scaled[index == 1, ])
+red_wine_test_list <- lapply(red_wine_indexes_list, function(index) red_wine_scaled[index == 2, ])
+
+# Defining oversampling functions
+oversample_data_red <- function(my_data) {
+  data <- my_data
+  return(ovun.sample(quality ~ ., data = data, method = "over", N = 2150)$data)
+}
+
+oversample_data_white <- function(my_data) {
+  data <- my_data
+  return(ovun.sample(quality ~ ., data = data, method = "over", N = 6150)$data)
+}
+
+
+# Applying oversampling to all training sets
+oversampled_red_wine_train_list <- lapply(red_wine_train_list, 
+                                          oversample_data_red)
+
+oversampled_white_wine_train_list <- lapply(white_wine_train_list, 
+                                            oversample_data_white)
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+unregister_dopar <- function() {
+  env <- foreach:::.foreachGlobals
+  rm(list=ls(name=env), pos=env)
+}
+unregister_dopar()
+
+#Random Forest Model for predicting Grade A Red Wine 
+
+cat("Calling extra sample storing in data frame and using cross validation and 
+    grid search to find optimal parameters")
+red_wine_rf_extra <- oversampled_red_wine_train_list[[31]]
+
+# Define the control for grid search with 10-fold cross-validation
+train_control <- trainControl(method = "cv", number = 10)
+
+# Define the grid of hyper-parameters to tune
+tune_grid <- expand.grid(
+  mtry = c(2,3,4,5))
+
+cat("Training the Random Forest model using grid search and 
+    10-fold cross-validation for Red Wine")
+rf_gridsearch_red <- caret::train(quality ~ .,
+                       red_wine_rf_extra,
+                       method = "rf", 
+                       trControl = train_control, 
+                       tuneGrid = tune_grid,
+                       importance = TRUE)
+plot(rf_gridsearch_red)
+cat("This plot shows that optimal number of variables 
+    to try at every node split is 2")
+
+#Variable Importance Plot of model predicting Grade A red wine
+rf_gridsearch_red_importance <- varImp(rf_gridsearch_red, type = 2)
+plot(rf_gridsearch_red_importance, 
+     main = "Variable Importance Ranked by Gini Impurity")
+
+cat("This plot shows that the elbow of the importance plot is at the fifth most 
+    important variable so the remaining variables are dropped from future model, 
+    these variables are: total_sulfur_dioxide, density, fixed_acidity, 
+    residual_sugar, pH, free_sulfur_dioxide")
+
+drop_columns <- c("total_sulfur_dioxide","density","fixed_acidity",
+                  "residual_sugar","pH","free_sulfur_dioxide")
+
+oversampled_red_wine_train_list <- lapply(oversampled_red_wine_train_list, function(df) {
+  df %>% dplyr::select(-all_of(drop_columns))
+})
+
+
+cat("Examining the grid-search's plot it shows the optimal number of variables 
+    to randomly sample from at every node split is 2, now applying Random Forest 
+    Model with optimal parameter 30 times, since this is very time consuming 
+    using parallel processing")
+
+
+#Creating empty lists
+accuracy_vector_red <- numeric(length(1:30))
+conf_mat_list_red <- vector("list",length(1:30))
+variable_importance_list_red <- vector("list",length(1:30))
+
+tune_grid2 <- expand.grid(mtry = 2)  
+
+#initializing parallel processing
+num_cores <- detectCores() - 2
+cl <- makePSOCKcluster(num_cores)
+registerDoParallel(cl)
+
+
+results <- foreach (i = 1:length(oversampled_red_wine_train_list), 
+                    .packages = c("caret", "dplyr")) %dopar% {
+# Training the Random Forest model with 30 times
+  rf_model_red <- caret::train(
+    quality ~ .,
+    data = oversampled_red_wine_train_list[[i]],
+    method = "rf",
+    tuneGrid = tune_grid2,
+    importance = TRUE
+  )
+
+#Confusion Matrix of final model predicting Grade A red wine
+predictions_red <- predict(rf_model_red, newdata = red_wine_test_list[[i]])
+confusion_mat <- confusionMatrix(predictions_red, red_wine_test_list[[i]]$quality)
+#conf_mat_list_red[[i]] <- confusion_mat
+
+accuracy_vector_red[i] <- confusion_mat$overall['Accuracy']
+
+var_importance <- varImp(rf_model_red, type = 2)  
+variable_importance_list_red[[i]] <- var_importance
+
+list(
+confusion_matrix = confusion_mat,
+accuracy = confusion_mat$overall['Accuracy'],
+variable_importance = var_importance
+)
+}
+stopCluster(cl)
+
+for (i in 1:length(results)) {
+  conf_mat_list_red[[i]] <- results[[i]]$confusion_matrix
+  accuracy_vector_red[i] <- results[[i]]$accuracy
+  variable_importance_list_red[[i]] <- results[[i]]$variable_importance
+}
+
+
+cat("Creating 95% Confidence Interval for Accuracy of Model 
+    predicting Grade A red wine")
+
+mean_red2_vec  <- mean(accuracy_vector_red)
+
+#standard error
+std_error_red <- sd(accuracy_vector_red) / sqrt(length(accuracy_vector_red))
+
+#critical t value for 95% CI
+critical_value_red <- qt(0.975, df = length(accuracy_vector_red) - 1)
+
+#confidence interval
+lower_ci_red <- mean_red2_vec - (critical_value_red * std_error_red)
+upper_ci_red <- mean_red2_vec + (critical_value_red * std_error_red)
+
+# 95% CI
+cat("95% Confidence Interval Predicting Grade A Red Wine: [", lower_ci_red, ", ", upper_ci_red, "]\n")
+
+
+#Finding Index of accuracy value closest to mean
+closest_index_red <- which.min(abs(accuracy_vector_red - mean_red2_vec))
+
+
+#Confusion Matrix of Model closest to mean accuracy
+print(conf_mat_list_red[closest_index_red])
+
+
+#Variable Importance Plot of model 
+plot(rf_gridsearch_red_importance, 
+     main = "Variable Importance Ranked by Gini Impurity")
+
+```
+
+```{r}
+unregister_dopar <- function() {
+  env <- foreach:::.foreachGlobals
+  rm(list=ls(name=env), pos=env)
+}
+unregister_dopar()
+
+#Random Forest Model for predicting Grade A White Wine 
+
+cat("Calling extra sample storing in data frame and using cross validation and 
+    grid search to find optimal parameters")
+white_wine_rf_extra <- oversampled_white_wine_train_list[[31]]
+
+# Define the control for grid search with 10-fold cross-validation
+train_control <- trainControl(method = "cv", number = 10)
+
+# Define the grid of hyper-parameters to tune
+tune_grid <- expand.grid(mtry = c(2,3,4,5))
+
+cat("Training the Random Forest model using grid search and 
+    10-fold cross-validation for White Wine")
+rf_gridsearch_white <- caret::train(quality ~ .,
+                       white_wine_rf_extra,
+                       method = "rf", 
+                       trControl = train_control, 
+                       tuneGrid = tune_grid,
+                       importance = TRUE)
+plot(rf_gridsearch_white)
+cat("This plot shows that optimal number of variables to 
+    try at every node split is 2")
+
+#Variable Importance Plot of model predicting Grade A white wine
+rf_gridsearch_white_importance <- varImp(rf_gridsearch_white, type = 2)
+plot(rf_gridsearch_white_importance, 
+     main = "Variable Importance Ranked by Gini Impurity")
+
+cat("This plot shows that the elbow of the importance plot is at the fifth most 
+    important variable so the remaining variables are dropped from future model, 
+    these variables are: volatile_acidity, free_sulfur_dioxide, pH, citric_acid, 
+    fixed_acidity, sulphates")
+
+drop_columns <- c("volatile_acidity","free_sulfur_dioxide", "pH", "citric_acid", 
+                  "fixed_acidity", "sulphates")
+
+oversampled_white_wine_train_list <- lapply(oversampled_white_wine_train_list, 
+                                            function(df) {
+  df %>% dplyr::select(-all_of(drop_columns))
+})
+
+
+cat("Examining the grid-search's plot it shows the optimal number of variables 
+    to randomly sample from at every node split is 2, now applying Random Forest 
+    Model with optimal parameter 30 times, since this is very time consuming 
+    using parallel processing")
+
+
+#Creating empty lists
+accuracy_vector_white <- numeric(length(1:30))
+conf_mat_list_white <- vector("list",length(1:30))
+variable_importance_list_white <- vector("list",length(1:30))
+
+tune_grid2 <- expand.grid(mtry = 2)  
+
+#initializing parallel processing
+num_cores <- detectCores() - 2
+cl <- makePSOCKcluster(num_cores)
+registerDoParallel(cl)
+
+
+results <- foreach (i = 1:length(oversampled_white_wine_train_list), 
+                    .packages = c("caret", "dplyr")) %dopar% {
+# Training the Random Forest model with 30 times
+  rf_model_white <- caret::train(
+    quality ~ .,
+    data = oversampled_white_wine_train_list[[i]],
+    method = "rf",
+    tuneGrid = tune_grid2,
+    importance = TRUE
+  )
+
+#Confusion Matrix of final model pwhiteicting Grade A white wine
+predictions_white <- predict(rf_model_white, newdata = white_wine_test_list[[i]])
+confusion_mat <- confusionMatrix(predictions_white, 
+                                 white_wine_test_list[[i]]$quality)
+#conf_mat_list_white[[i]] <- confusion_mat
+
+accuracy_vector_white[i] <- confusion_mat$overall['Accuracy']
+
+var_importance <- varImp(rf_model_white, type = 2)  
+variable_importance_list_white[[i]] <- var_importance
+
+list(
+confusion_matrix = confusion_mat,
+accuracy = confusion_mat$overall['Accuracy'],
+variable_importance = var_importance
+)
+}
+stopCluster(cl)
+
+for (i in 1:length(results)) {
+  conf_mat_list_white[[i]] <- results[[i]]$confusion_matrix
+  accuracy_vector_white[i] <- results[[i]]$accuracy
+  variable_importance_list_white[[i]] <- results[[i]]$variable_importance
+}
+
+
+cat("Creating 95% Confidence Interval for Accuracy of Model predicting 
+    Grade A white wine")
+
+mean_white2_vec  <- mean(accuracy_vector_white)
+
+#standard error
+std_error_white <- sd(accuracy_vector_white) / sqrt(length(accuracy_vector_white))
+
+#critical t value for 95% CI
+critical_value_white <- qt(0.975, df = length(accuracy_vector_white) - 1)
+
+#confidence interval
+lower_ci_white <- mean_white2_vec - (critical_value_white * std_error_white)
+upper_ci_white <- mean_white2_vec + (critical_value_white * std_error_white)
+
+# 95% CI
+cat("95% Confidence Interval Predicting Grade A white Wine: [", lower_ci_white, ", ", upper_ci_white, "]\n")
+
+
+
+#Finding Index of accuracy value closest to mean
+closest_index_white <- which.min(abs(accuracy_vector_white - mean_white2_vec))
+
+
+#Confusion Matrix of Model closest to mean accuracy
+print(conf_mat_list_white[closest_index_white])
+
+
+#Variable Importance Plot of model 
+plot(rf_gridsearch_white_importance, main = "Variable Importance Ranked by Gini Impurity")
+
+
+```
