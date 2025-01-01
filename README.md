@@ -1,7 +1,7 @@
 # Wine Quality Prediction Using Random Forest
 This repository contains a machine learning project focused on predicting Grade A wine quality for both red and white wines using Random Forest classifiers. The goal is to identify the important factors contributing to Grade A wine quality in both red and white wines and compare the differences between the two. The project involves data preprocessing, feature selection, model evaluation, and hyperparameter tuning using grid search and cross-validation.
 
-## Contents
+## Repository Contents
 - **Grade_A_Wine_Analysis.Rmd**: RMD file containing analysis R-code
 - **Grade_A_Wine_Analysis.pdf**: PDF file containing analysis R-code, plots, and output
 - **Grade_A_Wine_EDA_Preprocesing.Rmd**: RMD file containing EDA/Preprocessing R-code
